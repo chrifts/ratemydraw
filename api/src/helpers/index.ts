@@ -125,14 +125,18 @@ async function leaveRoom(room_id, user_id) {
     try {
         const roomUpdated = await GR.updateOne(
             { _id : room_id },
-            { $pull:{ members: { _id: ObjectID(user_id) } } }
+            { $pull:{ members: { _id: user_id } } }
         )
-        const verify = await GR.findOne({ _id : room_id }).lean()
-        console.log(verify.members.length == 0)
-        if(verify.members.length == 0) {
+        const room = await GR.findOne({ _id : room_id }).lean()
+        
+        if(room.members.length == 0) {
             //remove room
             console.log('onDelete')
-            const rm = await GR.deleteOne({_id: ObjectID(room_id)})
+            const rm = await GR.deleteOne({_id: room_id})
+            return false;
+        } else {
+            //return room updated
+            return room;
         }
     } catch (error) {
         throw new Error(error)

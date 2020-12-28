@@ -1,21 +1,8 @@
 import { postMessage, leaveRoom } from './helpers/index'
 const words = require('../words.json')
+import { join } from "./controllers/RoomController";
 
 module.exports = function(io: any) {
-    //selected Chat Namespaces
-    // const chatspaces = io.of(/^\/chat-\w+$/);
-    // chatspaces.on('connection', socket => {
-        
-    //     socket.on('ChatSpaceMessage', (msg)=>{
-    //         postMessage(io, msg)
-    //     })
-    //     const chatSpace = socket.nsp;
-    //     console.log('connected to ChatSpace: '+chatSpace.name)
-    //     socket.broadcast.emit('broadcast', 'hello friends')
-    //     socket.on('disconnect', () => {
-    //         console.log('disconnected from ChatSpace: '+chatSpace.name)
-    //     });
-    // })
 
     function getWord() {
         const levels = []
@@ -35,44 +22,49 @@ module.exports = function(io: any) {
             socket.emit('ping', data);
         });
     }
-    //GameRoom Namespace    
-    const gameroom = io.of((/^\/room-\w+$/));
-    gameroom.data = {
-        _id: null,
-        word: null,
-        members: []
-    }
-    console.log(gameroom);
-    gameroom.on('connection', socket => {
-        console.log(gameroom);
-        ping(socket);
-        const user = JSON.parse(socket.request._query.member)
-        if(gameroom.data._id == null) {
-            gameroom.data._id = socket.request._query.room_id
+    function setWord(room, room_id){
+        switch (room.size) {
+            case 1:
+                room.word = getWord();
+                gameSpace.to(room_id).emit('room/word', room.word);
+                break;
+            default:
+                if(!room.word){
+                    room.word = getWord();
+                }
+                gameSpace.to(room_id).emit('room/word', room.word);
+                break;
         }
-        gameroom.data.members.push(user)
-        gameroom.emit('room/member_join', gameroom.data.members);
-        if(gameroom.data.members.length > 1 && gameroom.data.word == null) {
-            //GAME BEGIN
-            //send word to players
-            gameroom.data.word = getWord();
-            gameroom.emit('room/word', gameroom.data.word);
-        } else {
-            gameroom.emit('room/word', gameroom.data.word);
-        }      
-        console.log('new user joined to ' + socket.nsp.name);
+    }
+    //GameRoom Namespace
+    const gameSpace = io.of("/game-room");
+    const GAME_STATE = {
+        WAITING: 'WAITING',
+        PLAYING: 'PLAYING',
+        VOTING: 'VOTING',
+        ENDED: 'ENDED'
+    }
+
+    gameSpace.on('connection', async (socket) => {
+        ping(socket)
+        const username = socket.request._query.member
+        const { room, user } = await join(username);
+        socket.user = user;
+        socket.join(room.id);
+        socket.emit('room/my_data', user);
+        gameSpace.to(room.id).emit('room/member_join', room.members)
+        const gameSpaceRoom = gameSpace.adapter.rooms.get(room.id)
+        setWord(gameSpaceRoom, room.id)
         
         socket.on('disconnect', async () => {
-            console.log('user disconnected from: '+socket.nsp.name)
-            await leaveRoom(gameroom.data._id, user._id);
-            gameroom.data.members = gameroom.data.members.filter(member => member._id !== user._id);
-            console.log(gameroom)
-            gameroom.emit('room/member_leave', gameroom.data.members);
-            if(gameroom.data.members.length == 0) {
-                gameroom.removeAllListeners(); // Remove all Listeners for the event emitter
-                io._nsps.delete('/room-'+gameroom.data._id);
-                console.log(io._nsps)
+            const updatedRoomMembers = await leaveRoom(room.id, socket.user._id);
+            if(updatedRoomMembers) {
+                gameSpace.to(room.id).emit('room/member_leave', updatedRoomMembers.members)
             }
+            if(gameSpaceRoom.size == 1) {
+                setWord(gameSpaceRoom, room.id);
+            }
+            console.log(gameSpace)
         });
-    });
+    })
 }

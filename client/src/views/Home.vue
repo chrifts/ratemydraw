@@ -39,10 +39,9 @@
 <script lang="ts">
 import { Component, Vue } from "vue-property-decorator";
 import { axiosRequest } from "../helpers";
-import VueSocketIOExt from 'vue-socket.io-extended'
-import { io } from 'socket.io-client';
-import { MAIN_APP_CONTACT_HANDLER, MAIN_APP_MESSAGES } from '../constants';
-import { defaultSocketEvents, customSocketEvents } from '../helpers';
+
+// import { MAIN_APP_CONTACT_HANDLER, MAIN_APP_MESSAGES } from '../constants';
+// import { defaultSocketEvents, customSocketEvents } from '../helpers';
 
 @Component({
   name: 'Home',
@@ -58,32 +57,21 @@ export default class Home extends Vue {
     this.username = $event.target.value
   }
 
-  get user() {
-    return this.$store.getters.user;
-    
-  }
-  async join() {
+  join() {
+    if(this.$socket) {
+      delete this.$socket;
+    }
     if(this.username != '') {
-      const res = await axiosRequest('POST', (this.$root as any).urlApi + '/join-public', {username: this.username})
-      console.log(res)
-      if(res.status == 200) {
-        const socketUrl: string = process.env.NODE_ENV == 'development' ? process.env.VUE_APP_SOCKET_URL! : process.env.VUE_APP_SOCKET_URL_PROD!;
-        //connect to socket room-id received from server
-        const socket = io(socketUrl + '/room-'+res.data.room._id, {query: 
-          { 
-            member:JSON.stringify(res.data.user),
-            room_id:res.data.room._id,
-            room_members: JSON.stringify(res.data.room.members)
-          } 
-        });
-        this.$store.commit('setUser', res.data.user)
-        Vue.use(VueSocketIOExt, socket);
-        defaultSocketEvents(socket, {store: this.$store, context: 'roomSocket'});
+      this.$store.commit('setUser', {username: this.username})
+      // const res = await axiosRequest('POST', (this.$root as any).urlApi + '/join-public', {username: this.username})
+      // console.log(res)
+      // if(res.status == 200) {
+        //defaultSocketEvents(socket, {store: this.$store, context: 'roomSocket'});
         this.$router.push( { name:'GameRoom' } )
-      } else {
-        this.alert.active = true;
-        this.alert.info = 'Error connecting to server...'  
-      }     
+      // } else {
+      //   this.alert.active = true;
+      //   this.alert.info = 'Error connecting to server...'  
+      // }     
       
     } else {
       this.alert.active = true;

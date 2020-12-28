@@ -59,7 +59,7 @@ import { getOrCreate, postMessage, getMessages, clearNotifications } from '../co
 module.exports = function(io: any) {
     
 
-    router.post("/join-public", join(io));
+    // router.post("/join-public", join(io));
 
     return router; 
 }
