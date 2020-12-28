@@ -47,15 +47,17 @@ module.exports = function(io: any) {
 
     gameSpace.on('connection', async (socket) => {
         ping(socket)
-        const username = socket.request._query.member
-        const { room, user } = await join(username);
+        const username = socket.request._query.member;
+        const { room, user } = await join(username, 8);
         socket.user = user;
         socket.join(room.id);
-        socket.emit('room/my_data', user);
+        socket.emit('room/data', {user: user, room: room});
         gameSpace.to(room.id).emit('room/member_join', room.members)
         const gameSpaceRoom = gameSpace.adapter.rooms.get(room.id)
         setWord(gameSpaceRoom, room.id)
-        
+        socket.on('room/client/message', (message)=>{
+            gameSpace.to(message.room_id).emit('room/message', message)
+        })
         socket.on('disconnect', async () => {
             const updatedRoomMembers = await leaveRoom(room.id, socket.user._id);
             if(updatedRoomMembers) {

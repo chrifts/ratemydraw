@@ -7,7 +7,7 @@ async function createRoom(user){
     return room;
 }
 
-async function join(username) {
+async function join(username, room_max_player) {
     try {
         const user = {
             _id: ObjectID().toString(),
@@ -19,7 +19,7 @@ async function join(username) {
         if(rooms.length > 0) {
             var i = 0;
             for await (const room of rooms) {
-                if(room.members.length < 3) {
+                if(room.members.length < room_max_player) {
                     room.addMember(user)
                     
                     i++;

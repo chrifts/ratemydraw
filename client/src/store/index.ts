@@ -18,6 +18,7 @@ export default new Vuex.Store({
     firstLoad: false,
     loadingChat: false,
     user: null,
+    room: null,
     status: null,
     selectedChat: null,
     mainLoading: false,
@@ -170,6 +171,9 @@ export default new Vuex.Store({
     setUser(state, payload) {
       state.user = payload;
     },
+    setRoom(state, payload) {
+      state.room = payload;
+    },
     setStatus(state, payload) {
       state.status = payload;
     },
@@ -261,6 +265,9 @@ export default new Vuex.Store({
     },
     user(state) {
       return state.user;
+    },
+    room(state) {
+      return state.room;
     }
   },
   modules: {}

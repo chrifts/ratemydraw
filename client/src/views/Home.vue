@@ -11,7 +11,7 @@
               <v-col cols=6>
                 <v-text-field
                   @keyup="updateText"
-                  width="200p"
+                  width="200px"
                   label="Username"
                   filled
                   dense
